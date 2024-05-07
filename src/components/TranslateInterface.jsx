@@ -304,7 +304,7 @@ export const TranslateInterface = () => {
               <button
                 onClick={startRecording}
                 type="button"
-                className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline"
+                className="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline"
               >
                 Start Recording
               </button>

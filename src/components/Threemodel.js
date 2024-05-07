@@ -9,7 +9,7 @@ import {
 import CanvasLoader from "./Loader";
 
 const Computers = ({ isMobile }) => {
-  const computer = useGLTF("./lowpoly_medical_room/scene.gltf");
+  const { scene } = useGLTF("./newpaper/scene.gltf"); // Moved inside the component
 
   return (
     <mesh>
@@ -19,9 +19,9 @@ const Computers = ({ isMobile }) => {
       <pointLight position={[0, 10, 5]} intensity={500} color="white" />
       <pointLight position={[0, -10, -5]} intensity={500} color="white" />
       <primitive
-        object={computer.scene}
-        scale={isMobile ? 0.01 : 0.01}
-        position={isMobile ? [0, -3, -0.5] : [0, 0, -0.5]}
+        object={scene}
+        scale={isMobile ? 4 : 4}
+        position={isMobile ? [0, -4, -0.5] : [0, -3, -0.5]}
         rotation={[0, Math.PI / 2, 0]} // Rotate around the center plane
       />
     </mesh>
@@ -55,7 +55,7 @@ const Threemodel = () => {
       gl={{ preserveDrawingBuffer: true }}
     >
       <Suspense fallback={<CanvasLoader />}>
-        <OrbitControls
+        <OrbitControls 
           enableZoom={false}
           enablePan={false}
           rotateSpeed={0.5} // Adjust rotation speed
@@ -64,7 +64,7 @@ const Threemodel = () => {
           maxDistance={30} // Maximum distance from the center
           minPolarAngle={Math.PI / 6} // Limit rotation angle from top view
           maxPolarAngle={Math.PI / 2.6} // Limit rotation angle from bottom view
-          autoRotate
+          autoRotate = {true}
           autoRotateSpeed={0} // Adjust auto-rotation speed
         />
         <Computers isMobile={isMobile} />
