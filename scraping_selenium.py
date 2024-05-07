@@ -8,11 +8,18 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 
-cService = webdriver.ChromeService(executable_path='chromedriver.exe')
-driver = webdriver.Chrome(service = cService)
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument('log-level=3')
+
+cService = Service(executable_path='chromedriver.exe')
+driver = webdriver.Chrome(service=cService, options=chrome_options)
+
 def people_also_ask(url):
     driver.get(url)
-    time.sleep(3)  # Allow some time for the page to load
+    time.sleep(3)  
     
     questions = driver.find_elements(By.XPATH, "//div[@jsname='yEVEwb']")
     
@@ -20,9 +27,8 @@ def people_also_ask(url):
     
     for div in questions:
         try:
-            
             div.click()
-            time.sleep(1)  
+            time.sleep(1)
             
             span_elements = div.find_elements(By.TAG_NAME, 'span')
             for span in span_elements:
@@ -37,5 +43,7 @@ def people_also_ask(url):
 
 url = 'https://www.google.com/search?q=trump+vs+hillary'
 
-print(people_also_ask(url)[5:10])
+results = people_also_ask(url)
+print(results[5:10])  
+
 driver.quit()
