@@ -11,6 +11,7 @@ import torch
 
 #Imports from my files
 from scrapingbsf import make_data
+from scraping_selenium import people_also_ask
 from schemas import inputRequest
 
 app = FastAPI(title="IPD Back-End",)
@@ -47,22 +48,41 @@ def google_search(query):
     # Extract the answer (assuming it's in a specific class)
     if soup.select_one('.DI6Ufb'):
         answer = soup.select_one('.DI6Ufb').text
-    else:
-        answer = 'No Quick Answer'
+    
+    elif not soup.select_one('.DI6Ufb'):
+        result=people_also_ask(search_url)
+        if len(result)==2:
+            answer=result[0]+'\n'+result[1]
+        else:
+            answer = 'Could not retrieve articles related to headline, Could possibly be a false claim.'
     
     return answer
 
-@app.post("/gemini")
+@app.post("/gemini-FactCC")
 async def gemini(request: inputRequest):
     
     response = gemini_model.generate_content(
-        f'''You're tasked with fact-checking news headlines for accuracy. Given a headline, generate 1 questions that needs to be true to verify the headlines authenticity using a Google search to scrape the answer from the quick search box. Ask the crucial questions first.
-            Your output should only be in the form of a list data structure for me to ingest in my backend without any other text -> [Question1] with the actual question in place of Question1.
+        f'''You're tasked with fact-checking news headlines for accuracy. Given a headline, generate 1 questions that needs to be true to verify the headlines authenticity using a Google search to scrape the answer from the quick search box. 
+            Ask the crucial questions first. Your output should only be in the form of a string for me to ingest in my backend without any other text.
             The headline is : {request.input}'''
     )
-    quickSearchAnswer = google_search(response.text[0])
-    return {"Question": response.text,'Answer':quickSearchAnswer}
 
+    quickSearchAnswer = google_search(response.text)
+    
+    #compare scraped info as source and headline as the claim
+    ans = pipe([[[quickSearchAnswer,request.input]]], truncation=True, padding='max_length')
+
+    # Display the result
+    if ans[0]['label'] == 'INCORRECT':
+        ans[0]['score'] = 1 - ans[0]['score']
+    
+    classification_result = {
+        "label": ans[0]['label'],
+        "score": ans[0]['score']
+    }
+    return {"Question": response.text,'Answer':quickSearchAnswer,'Result':classification_result}
+
+#-------------------------------------------------------------------------------------------------------------------------------------
 #To scrape headlines for the FactCC endpoint
 def dataframegen(text_input):
     scraped_df = make_data(text_input)
@@ -71,22 +91,18 @@ def dataframegen(text_input):
 
 pipe = pipeline(model="manueldeprada/FactCC", task="text-classification", max_length=512)
 
-#-------------------------------------------------------------------------------------------------------------------------------------
 @app.post("/FactCC")
 async def factCC(request: inputRequest):
     scraped_df =  dataframegen(request.input)
 
     #To make sure best scraped article picked
     scraped_df = scraped_df.sort_values(by='Content', key=lambda x: x.str.len(), ascending=False) 
-    if len(scraped_df) == 0 or not scraped_df['Title'][0]:
-        raise HTTPException(status_code=404, detail="Could not retrieve articles related to headlines")
+
+    if len(scraped_df) == 0 or not scraped_df['Title'][0] or '403 Forbidden' in scraped_df['Content'][0] or '403 Forbidden' in scraped_df['Title'][0] :
+        raise HTTPException(status_code=404, detail="Could not retrieve articles related to headline, Could possibly be a false claim.")
 
     scraped_content = (
     f"{scraped_df['Title'][0]} \n{scraped_df['Content'][0]}")
-
-    # after 400 tokens slice the scraped_content till the next fullstop
-    # if len(scraped_content) > 400:
-    #     scraped_content = scraped_content[:400] + scraped_content[400:].split('.')[0] + '.'
     
     # Perform text classification [source,claim]
     ans = pipe([[[scraped_content,request.input]]], truncation=True, padding='max_length')

@@ -8,16 +8,16 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument('log-level=3')
-
-cService = Service(executable_path='chromedriver.exe')
-driver = webdriver.Chrome(service=cService, options=chrome_options)
 
 def people_also_ask(url):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument('log-level=1')
+
+    cService = Service(executable_path='/Users/ameet/Desktop/IPD-FastAPI/chromedriver')
+    driver = webdriver.Chrome(service=cService, options=chrome_options)
     driver.get(url)
     time.sleep(3)  
     
@@ -38,12 +38,7 @@ def people_also_ask(url):
                     
         except Exception as e:
             print(f"Error clicking or extracting from div/span: {e}")
+    
+    driver.quit()
+    return all_span_texts[0:2]
 
-    return all_span_texts
-
-url = 'https://www.google.com/search?q=trump+vs+hillary'
-
-results = people_also_ask(url)
-print(results[5:10])  
-
-driver.quit()
