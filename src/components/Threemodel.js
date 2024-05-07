@@ -62,8 +62,8 @@ const Threemodel = () => {
           target={[0, 0, 0]} // Set rotation center
           minDistance={10} // Minimum distance from the center
           maxDistance={30} // Maximum distance from the center
-          minPolarAngle={Math.PI / 6} // Limit rotation angle from top view
-          maxPolarAngle={Math.PI / 2.6} // Limit rotation angle from bottom view
+          // minPolarAngle={Math.PI / 6} // Limit rotation angle from top view
+          // maxPolarAngle={Math.PI / 2.6} // Limit rotation angle from bottom view
           autoRotate = {true}
           autoRotateSpeed={0} // Adjust auto-rotation speed
         />

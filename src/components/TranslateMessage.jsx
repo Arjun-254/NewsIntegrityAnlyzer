@@ -63,44 +63,6 @@ const TranslateMessage = ({ type, lang, srcLang, content }) => {
     setclickspeak(false);
   };
 
-  // Get Location via NER API CALL
-  const handleNER = async () => {
-    try {
-      const response = await fetch(ngrokurl + "/ner/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json", // Specify JSON content type
-          token: localStorage.getItem("access_token"),
-        },
-        body: JSON.stringify({
-          text: transcription,
-          emotion: "Anger",
-        }),
-      });
-
-      if (response.ok) {
-        const nerData = await response.json();
-        setNer(nerData.LOC);
-        console.log(transcription);
-        console.log(ner);
-        const url = `https://www.google.com/maps/dir/${ner[0]}+station/${ner[1]}+station`;
-        //to only open new window when double clicked
-        if (count == 1) {
-          window.open(url, "_blank", "noreferrer");
-          setCount(0);
-        } else {
-          setCount(count + 1);
-          console.log(count);
-        }
-      } else {
-        alert("NER failed");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Error while fetching location");
-    }
-  };
-
   const [loading, setLoading] = useState(false); // New loading state
 
   const falconResponse = async () => {
