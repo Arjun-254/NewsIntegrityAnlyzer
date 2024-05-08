@@ -1,4 +1,5 @@
 import Landing from "./pages/Landing";
+import {Assistant} from "./pages/Assistant";
 
 import {
   Routes,
@@ -17,7 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
          
-          <Route path="/Translate" element={<Translate />} />
+          <Route path="/Chat" element={<Assistant />} />
           
         </Routes>
       </BrowserRouter>
