@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status, Header, Body
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor
 
 #ML Imports
 from transformers import pipeline
@@ -172,59 +173,75 @@ def aggregate_results(Gemini_result, QNA_result, Article_result):
         final_label = "INCORRECT"
 
     return {'label':final_label,"votes":votes}
-@app.post("/FactCC-combined")
-async def combined_factCC(request: inputRequest):
+
+# Define a function for each pipeline
+def articles_pipeline(request):
+    scraped_df =  dataframegen(request.input)
+    scraped_df = scraped_df.sort_values(by='Content', key=lambda x: x.str.len(), ascending=False)
+    if (len(scraped_df) == 0) or (not scraped_df['Title'][0]) or ('403 Forbidden' in scraped_df['Content'][0]) or ('403 Forbidden' in scraped_df['Title'][0]) or (len(scraped_df['Content'][0])<400):
+        scraped_article="Could not retrieve articles related to headline, Could possibly be a false claim."
+        Article_result = {"label": "NA", "score": 0}
+    else:
+        scraped_article = (f"{scraped_df['Title'][0]} \n{scraped_df['Content'][0]}")
+        Article_result = perform_text_classification(scraped_article, request.input)
+    return scraped_article, Article_result
+
+def gemini_pipeline(request):
     gemini_question = gemini_model.generate_content(
         f'''You're tasked with fact-checking news headlines for accuracy. Given a headline, generate 1 questions that needs to be true to verify the headlines authenticity using a Google search to scrape the answer from the quick search box. 
             Ask the crucial questions first. Your output should only be in the form of a string for me to ingest in my backend without any other text.
             The headline is : {request.input}'''
     )
-
-    scraped_df =  dataframegen(request.input)
-    #To make sure best scraped article picked
-    scraped_df = scraped_df.sort_values(by='Content', key=lambda x: x.str.len(), ascending=False) 
-
-    if (len(scraped_df) == 0) or (not scraped_df['Title'][0]) or ('403 Forbidden' in scraped_df['Content'][0]) or ('403 Forbidden' in scraped_df['Title'][0]) or (len(scraped_df['Content'][0])<400) :
-        scraped_article="Could not retrieve articles related to headline, Could possibly be a false claim."
-        Article_result = {
-      "label": "NA",
-      "score": 0
-    }
-    else:
-        scraped_article = (f"{scraped_df['Title'][0]} \n{scraped_df['Content'][0]}")
-        Article_result = perform_text_classification(scraped_article, request.input)
-    
     GeminiSearchAnswer = google_search(gemini_question.text)
-    QNASearchAnswer = google_search(request.input)
-    scraped_article = (f"{scraped_df['Title'][0]} \n{scraped_df['Content'][0]}")
-
     Gemini_result = perform_text_classification(GeminiSearchAnswer, request.input)
-    QNA_result = perform_text_classification(QNASearchAnswer, request.input)
-    
+    return gemini_question.text, GeminiSearchAnswer, Gemini_result
 
+def qna_pipeline(request):
+    QNASearchAnswer = google_search(request.input)
+    QNA_result = perform_text_classification(QNASearchAnswer, request.input)
+    return QNASearchAnswer, QNA_result
+
+# Execute the pipelines concurrently
+def execute_pipelines(request):
+    with ThreadPoolExecutor() as executor:
+        # Submit each pipeline function to the executor
+        future_articles = executor.submit(articles_pipeline, request)
+        future_gemini = executor.submit(gemini_pipeline, request)
+        future_qna = executor.submit(qna_pipeline, request)
+
+        # Retrieve results when all tasks are completed
+        scraped_article, Article_result = future_articles.result()
+        gemini_question_text, GeminiSearchAnswer, Gemini_result = future_gemini.result()
+        QNASearchAnswer, QNA_result = future_qna.result()
+
+    return scraped_article, Article_result, gemini_question_text, GeminiSearchAnswer, Gemini_result, QNASearchAnswer, QNA_result
+
+# Define your FastAPI endpoint
+@app.post("/FactCC-combined")
+async def combined_factCC(request: inputRequest):
+
+    # Execute pipelines concurrently
+    scraped_article, Article_result, gemini_question_text, GeminiSearchAnswer, Gemini_result, QNASearchAnswer, QNA_result = execute_pipelines(request)
+
+    # Aggregate results
     final_result = aggregate_results(Gemini_result, QNA_result, Article_result)
 
     return {
         "FactCC-gemini": {
-            "generatedGeminiQuestion": gemini_question.text,
+            "generatedGeminiQuestion": gemini_question_text,
             "scrapedContent": GeminiSearchAnswer,
             "result": Gemini_result
         },
         "FactCC-qna": {
-            "scrapedContent":QNASearchAnswer ,
+            "scrapedContent": QNASearchAnswer,
             "result": QNA_result
         },
         "FactCC-articles": {
-            "scrapedContent":scraped_article,
+            "scrapedContent": scraped_article,
             "result": Article_result
         },
-        "FinalResult":final_result
+        "FinalResult": final_result
     }
-
-
-
-    
-
 
 #-------------------------------------------------------------------------------------------------------------------------------------
 tokenizer_Bert_Binary_FakeReal = AutoTokenizer.from_pretrained(
