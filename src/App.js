@@ -4,11 +4,9 @@ import {Assistant} from "./pages/Assistant";
 import {
   Routes,
   Route,
-  useNavigationType,
-  useLocation,
 } from "react-router-dom";
 import { BrowserRouter } from "react-router-dom";
-import { Translate } from "./pages/Translate";
+
 
 
 function App() {
@@ -17,8 +15,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
-         
-          <Route path="/Assistant" element={<Translate />} />
+          <Route path="/Assistant" element={<Assistant />} />
           
         </Routes>
       </BrowserRouter>

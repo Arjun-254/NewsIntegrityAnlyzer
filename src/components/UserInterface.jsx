@@ -1,201 +1,30 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Bars, CirclesWithBar, Audio, Puff } from "react-loader-spinner";
-import { FaMicrophone } from "react-icons/fa";
 import ChatMessage from "./ChatMessage";
 
 export const UserInterface = () => {
+
+  const ngrokurl = "http://127.0.0.1:8000";
   const [transcription, setTranscription] = useState("");
-  //For text field instead of voice
   const [textInput, setTextInput] = useState("");
-
-  //mic permission
-  const [permission, setPermission] = useState(false);
-
-  //recording inactive and paused are 3 states
-  const [recordingStatus, setRecordingStatus] = useState("inactive");
-
-  //audio from the getUserMedia function
-  const [stream, setStream] = useState(null);
-
-  //will contain encoded pieces of audio
-  const [audioChunks, setAudioChunks] = useState([]);
-
-  //blob url of the audio
-  const [audio, setAudio] = useState(null);
-
   const [clicktranscribe, setclicktranscribe] = useState(false);
 
   const [messages, setMessages] = useState([]); // New state for storing messages
 
-  const [suggestions, setSuggestions] = useState([]);
 
-  const mimeType = "audio/webm";
-  const ngrokurl = "https://9f9b-104-196-11-61.ngrok-free.app";
-  //in built api reference
-  const mediaRecorder = useRef(null);
-
-  async function query(data) {
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/bert-base-uncased",
-      {
-        headers: {
-          Authorization: "Bearer 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",
-        },
-        method: "POST",
-        body: JSON.stringify(data),
-      }
-    );
-    const result = await response.json();
-    return result;
-  }
-
-  useEffect(() => {
-    let timer;
-
-    async function delayedQuery() {
-      if (textInput.trim() != "") {
-        // Clear any previous timers
-        clearTimeout(timer);
-
-        // Set a new timer to execute the query after x milliseconds
-        timer = setTimeout(() => {
-          const inputText = textInput + " [MASK]."; // Append " [MASK]" to the input text
-          query({ inputs: inputText }).then((response) => {
-            try {
-              response.forEach((item, index) => {
-                setSuggestions((prevsuggestions) => [
-                  ...prevsuggestions,
-                  item.sequence.replace(".", "").split(" ").pop(),
-                ]);
-              });
-            } catch (err) {
-              console.log(err);
-            }
-          });
-        }, 100);
-      }
-    }
-
-    delayedQuery();
-
-    return () => {
-      clearTimeout(timer); // Clean up the timer on component unmount or when textInput changes
-    };
-  }, [textInput]);
   const handleTextInputChange = (event) => {
     setTextInput(event.target.value);
-  };
-
-  const handleSuggestionClick = (index) => {
-    setTextInput(
-      (prevTextInput) =>
-        prevTextInput.trim() + " " + suggestions.slice(-5)[index]
-    );
-    setSuggestions([]);
-  };
-
-  // Function to request microphone permission
-  const getMicrophonePermission = async () => {
-    if ("MediaRecorder" in window) {
-      try {
-        const streamData = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: false,
-        });
-        setPermission(true);
-        setStream(streamData);
-      } catch (err) {
-        alert(err.message);
-      }
-    } else {
-      alert("The MediaRecorder API is not supported in your browser.");
-    }
-  };
-
-  // Function to start audio recording
-  const startRecording = async () => {
-    setRecordingStatus("recording");
-    //create new Media recorder instance using the stream
-
-    const media = new MediaRecorder(stream, { type: mimeType });
-    //set the MediaRecorder instance to the mediaRecorder ref
-
-    mediaRecorder.current = media;
-    //invokes the start method to start the recording process
-
-    let localAudioChunks = [];
-    mediaRecorder.current.ondataavailable = (event) => {
-      if (typeof event.data === "undefined") return;
-      if (event.data.size === 0) return;
-      localAudioChunks.push(event.data);
-    };
-    setAudioChunks(localAudioChunks);
-
-    mediaRecorder.current.start();
-  };
-
-  // Function to stop audio recording
-  const stopRecording = () => {
-    setRecordingStatus("inactive");
-    //stops the recording instance
-
-    mediaRecorder.current.stop();
-    mediaRecorder.current.onstop = () => {
-      //creates a blob file from the audiochunks data
-      const audioBlob = new Blob(audioChunks, { type: mimeType });
-      //creates a playable URL from the blob file.
-      const audioUrl = URL.createObjectURL(audioBlob);
-      setAudio(audioUrl);
-
-      const formData = new FormData();
-      formData.append("file", audio);
-      setAudioChunks([]);
-    };
   };
 
   // Function to transcribe audio
   const handleTranscribe = async () => {
     setclicktranscribe(true);
-    if (textInput) {
-      setTranscription(textInput);
-      setMessages([...messages, { type: "user", content: textInput }]);
-      setclicktranscribe(false);
-    } else {
-      // Create a Blob from the recorded audio
-      const audioBlob = await fetch(audio).then((res) => res.blob());
-
-      // Create a FormData object and append the Blob as "file"
-
-      const formData = new FormData();
-      formData.append("file", audioBlob, "audio.webm");
-
-      try {
-        const response = await fetch(ngrokurl + "/transcribe/", {
-          method: "POST",
-          headers: {
-            token: localStorage.getItem("access_token"),
-          },
-          body: formData,
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setTranscription(data.text);
-          setMessages([...messages, { type: "user", content: data.text }]);
-        } else {
-          alert("Transcription failed");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        alert("An error occurred while transcribing the audio");
-      }
-
-      setclicktranscribe(false);
-    }
-    console.log(transcription);
-  };
+    setTranscription(textInput);
+    setMessages([...messages, { type: "user", content: textInput }]);
+    setclicktranscribe(false);
+  }
 
   const chatContainerRef = useRef(null);
-
   // Scroll to the bottom of the chat container whenever messages change
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -214,7 +43,7 @@ export const UserInterface = () => {
     </div>
 
     <div
-      className="flex-grow chat-container overflow-y-auto no-scrollbar py-2"
+      className="flex-grow chat-container overflow-y-auto no-scrollbar py-2 mb-3"
       style={{ maxHeight: "calc(100vh - 160px)", overflow: "auto" }}
       ref={chatContainerRef}
     >
@@ -252,7 +81,7 @@ export const UserInterface = () => {
             </div>*/}
         </div>
 
-        <div className="flex justify-end items-end flex-row w-2/6">
+        <div className="flex justify-center items-end flex-row w-3/6 md:w-2/6">
           {clicktranscribe && (
             <CirclesWithBar
               height="40"
@@ -270,7 +99,7 @@ export const UserInterface = () => {
           {true ? (
             <button
               onClick={handleTranscribe}
-              className=" hover:animate-pulse text-white bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 w-full font-bold shadow-md py-2 px-2 ml-4 rounded-2xl focus:outline-none focus:shadow-outline text-sm md:text-lg"
+              className=" hover:animate-pulse text-white bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 w-4/6 font-bold shadow-md py-2 px-2 ml-4 rounded-2xl focus:outline-none focus:shadow-outline text-sm md:text-lg"
             >
               Send <span>&rarr;</span>
             </button>

@@ -1,154 +1,45 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Bars, CirclesWithBar, Audio, Puff, Dna } from "react-loader-spinner";
-import { FaMicrophone } from "react-icons/fa";
-import ReactMarkdown from "react-markdown";
-import { marked } from "marked";
+import React, { useState, useEffect } from "react";
 
 const ChatMessage = ({ type, content }) => {
-  const [transcription, setTranscription] = useState("");
- 
-  //workaround to double click get route
-  const [count, setCount] = useState(0);
-
-  //Falcon 40B response
-  const [falcon, setFalcon] = useState(null);
-  const [tts, setTts] = useState(null);
-
-  //blob url of reply
-  const [audio1, setAudio1] = useState(null);
-
-  //check if reply audio is playing and play loader
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const [clickspeak, setclickspeak] = useState(false);
-
-  //NER Endpoint useState
-  const [ner, setNer] = useState([]);
-
-  const [correctedText, setCorrectedText] = useState("");
-
-  //FACTCC REPLY FOR NEWS
-  const [reply,setReply]=useState([])
-
-  const mimeType = "audio/webm";
   const ngrokurl = "http://127.0.0.1:8000";
-  //in built api reference
-  const mediaRecorder = useRef(null);
 
-  const handleSound = async () => {
-    setclickspeak(true);
-    console.log(tts);
-    try {
-      let endpoint;
-      endpoint = ngrokurl + "/labs-tts";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          token: localStorage.getItem("access_token"),
-          // Specify JSON content type
-        },
-        body: JSON.stringify({
-          text: tts,
-          emotion: "cheerful",
-        }),
-      });
+  const [reply,setReply]=useState('')   //FACTCC REPLY FOR NEWS
+  const [loading, setLoading] = useState(true); // New loading state
 
-      if (response.ok) {
-        const responseData = await response.blob(); // Get the binary response data
-        const audioUrl = URL.createObjectURL(responseData); // Create a URL for the blob
-        setAudio1(audioUrl);
-      } else {
-        alert("Reply Failed");
-      }
-    } catch (error) {
-      console.error("Error during audio request:", error);
-      alert("An error occurred while replying to the audio");
-    }
-    setclickspeak(false);
-  };
-
-  // Get Location via NER API CALL
-  const handleNER = async () => {
-    try {
-      const response = await fetch(ngrokurl + "/ner/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json", // Specify JSON content type
-          token: localStorage.getItem("access_token"),
-        },
-        body: JSON.stringify({
-          text: content,
-          emotion: "Anger",
-        }),
-      });
-
-      if (response.ok) {
-        const nerData = await response.json();
-        setNer(nerData.LOC);
-        console.log(content);
-        console.log(nerData.LOC);
-        const url = `https://www.google.com/maps/dir/${nerData.LOC[0]}+station/${nerData.LOC[1]}+station`;
-        //to only open new window when double clicked
-        if (true) {
-          window.open(url, "_blank", "noreferrer");
-          setCount(0);
-        } else {
-          setCount(count + 1);
-          console.log(count);
-        }
-      } else {
-        alert("NER failed");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Error while fetching location");
-    }
-  };
-
-  const [loading, setLoading] = useState(false); // New loading state
-
-  const falconResponse = async () => {
+  const factccResponse = async () => {
     try {
       setLoading(true); // Set loading to true when the request starts
-
       const response = await fetch(ngrokurl + "/FactCC-combined", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          token: localStorage.getItem("access_token"),
         },
         body: JSON.stringify({
-          input: content,
-          // emotion: "Neutral",
+          input: content
         }),
       });
 
       if (response.ok) {
-        const falcon_response = await response.json();
-        // Convert Falcon response text from Markdown to HTML
-        const htmlText = marked(falcon_response.text);
-        setTts(falcon_response.text);
-        setReply(falcon_response.text)
-        // Set the HTML text using setFalcon
-        setFalcon(htmlText);
-        console.log(falcon_response.text)
+        const factcc_response = await response.json();
+        setReply(factcc_response)
+        console.log(factcc_response)
       } else {
-        console.log("model dead");
+        console.log("No Response");
       }
+      setLoading(false);
     } catch (error) {
       console.error("Error:", error);
     } finally {
-      setLoading(false); // Set loading to false regardless of success or failure
+      //setLoading(false); // Set loading to false regardless of success or failure
     }
   };
 
   useEffect(() => {
     // Check if content is available and falcon is not set
-    if (content && !falcon) {
-      falconResponse();
+    if (content && !reply) {
+      factccResponse();
     }
-  }, [content, falcon]);
+  },[reply,content]);
 
   
   const statistics_on_news = [
@@ -188,13 +79,13 @@ const ChatMessage = ({ type, content }) => {
         </button> */}
         <div
           className={`flex flex-col text-white ${
-            type != "user" ? "items-end" : "items-start"
+            type !== "user" ? "items-end" : "items-start"
           } w-7/12 bg-${
             type === "user" ? "violet-600" : "gray-300"
           } rounded-lg p-3`}
         >
           <h2 className="text-lg font-semibold">
-            <i>{type === "user" ? " You " : " Railway Buddy 🚞 "}</i>
+            <i>{type === "user" ? " User Entered Headline " : " Railway Buddy 🚞 "}</i>
           </h2>
           <p className="text-sm">{content}</p>
         </div>
@@ -205,8 +96,8 @@ const ChatMessage = ({ type, content }) => {
         {/* <div className="mx-1 p-5 rounded-full border-gray-300 border-4"></div> */}
         <div className="flex flex-col justify-start items-start w-11/12 bg-slate-300 rounded-lg p-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            <i>News Annalyser Response</i>
+          <h2 className="text-2xl font-bold text-slate-900">
+            <i>News Integrity Analyser Response</i>
           </h2>
           {/* {loading ? (
             <Dna
@@ -224,10 +115,11 @@ const ChatMessage = ({ type, content }) => {
             ></div>
           )} */}
         </div>
-        <div className="flex flex-row w-full">
-          <div className="flex flex-col w-1/3 bg-indigo-500 rounded-md p-3 my-2 mr-2 text-white">
+        <div className="flex flex-col md:flex-row w-full">
+          <div className="flex flex-col w-full md:w-1/3 bg-indigo-500 rounded-md p-3 my-2 mr-2 text-white">
             
-            FactCC-Articles
+            <p className="text-2xl"><b>FactCC-Articles </b></p>
+            <hr className="border-t-2 border-white my-2" />
             {
               loading? (
                 <div className="flex flex-col"> 
@@ -238,20 +130,23 @@ const ChatMessage = ({ type, content }) => {
               ):(
                 <div>
                   <p>
-                    {reply.FactCCArticles}
+                    <b>Scraped Content : </b> {reply.FactCCarticles.scrapedContent }...
                   </p>
-                  {/* <p>
-                    {reply.FactCCArticles}
-                  </p> */}
-                  {/* <p>
-                    {reply.FactCCArticles.scrapedContent}
-                  </p> */}
+                  <br/>
+                  <br/>
+                  <p>
+                  Confidence : {(reply.FactCCarticles.result.score)*100} %
+                  </p> 
+                  <p className={` text-xl justify-center items-center p-3  ${reply.FactCCarticles.result.label === "CORRECT" ?("bg-green-600"):(reply.FactCCarticles.result.label === "INCORRECT"? ("bg-red-600"):("bg-yellow-500"))}  rounded-md flex`}>
+                  <b>RESULT : </b>{reply.FactCCarticles.result.label}
+                  </p> 
                 </div>
               )
             }
           </div>
-          <div className="flex flex-col w-1/3 bg-indigo-500 rounded-md p-3 my-2 text-white">
-            FactCC-Gemini
+          <div className="flex flex-col w-full md:w-1/3 bg-indigo-500 rounded-md p-3 my-2 text-white">
+          <p className="text-2xl"> <b>FactCC- Gemini</b></p>
+          <hr className="border-t-2 border-white my-2" />
             {
               loading? (
                 <div className="flex flex-col"> 
@@ -260,25 +155,29 @@ const ChatMessage = ({ type, content }) => {
               </div>
               ):(
                 <div>
-                  {/* <p>
-                    {reply.FactCC-gemini.result.label}
-                  </p>
                   <p>
-                    {reply.FactCC-gemini.result.score}
+                  <b>Generated LLM Question : </b>{reply.FactCCgemini.generatedGeminiQuestion}
                   </p>
+                  <br/>
                   <p>
-                    {reply.FactCC-gemini.scrapedContent}
+                  <b>Scraped Content : </b>{reply.FactCCgemini.scrapedContent}
                   </p>
+                  <br/>
+                  <br/>
                   <p>
-                    {reply.FactCC-gemini.generatedGeminiQuestion}
+                    Confidence : {(reply.FactCCgemini.result.score)*100}%
                   </p>
-                   */}
+                  <p className={`text-xl justify-center items-center p-3 b-0  ${reply.FactCCgemini.result.label === "CORRECT" ?("bg-green-600"):("bg-red-600")}  rounded-md flex`}>
+                  <b>RESULT : </b>{reply.FactCCgemini.result.label}
+                  </p>
+
                 </div>
               )
             }
           </div>
-          <div className="flex flex-col w-1/3 bg-indigo-500 rounded-md p-3 my-2 ml-2 text-white">
-            FactCC-Qna
+          <div className="flex flex-col  w-full md:w-1/3 bg-indigo-500  rounded-md p-3 my-2 ml-2 text-white">
+          <p className="text-2xl"><b>FactCC-Qna</b></p>
+          <hr className="border-t-2 border-white my-2" />
             {
               loading? (
                 <div className="flex flex-col"> 
@@ -287,41 +186,43 @@ const ChatMessage = ({ type, content }) => {
               </div>
               ):(
                 <div>
-                  {/* <p>
-                    {reply.FactCCQna.result.score}
-                  </p>
                   <p>
-                    {reply.FactCCQna.result.score}
+                  <b>Scraped Content : </b>{reply.FactCCqna.scrapedContent}
                   </p>
+                  <br/>
                   <p>
-                    {reply.FactCCQna.scrapedContent}
-                  </p> */}
+                  Confidence : {(reply.FactCCqna.result.score)*100}%                  
+                  </p>
+                  <p className={`text-xl justify-center items-center p-3  ${reply.FactCCqna.result.label === "CORRECT" ?("bg-green-600"):("bg-red-600")}  rounded-md flex`}>
+                  <b>RESULT : </b>{ reply.FactCCqna.result.label}
+                  </p>
+                  <br/>
                 </div>
               )
             }
           </div>
         </div>
-        {/* <div className="flex flex-row w-full m-2"> */}
-          <div className="flex flex-col  w-full  bg-gradient-to-b from-green-300 to-green-300 rounded-md p-3 text-black">
+        <div className="flex flex-row w-full items-center justify-center">
+
+          {/* <div className="flex flex-col w-1/2 justify-center rounded-md p-3 text-white bg-gray-800" > */}
             {
               loading? (
                 <div className="flex flex-col items-center"> 
                   {/* <div className="flex w-11/12 h-5 bg-emerald-800 rounded-md animate-pulse mt-2 mb-2"></div>
                   <div className="flex w-4/6 h-5 bg-emerald-800 rounded-md animate-pulse "></div> */}
-                  <i className="flex animate-pulse text-black text-lg items-center justify-center">Fun Fact: {randomStatistic}</i>
+                  <i className="flex animate-pulse text-gray-900 text-lg items-center justify-center">Fun Fact: {randomStatistic}</i>
                 </div>
               ):(
-                <div>
-                  Final Result
-                  {/* <p>
-                    {reply.FinalResult.label}
+                <div className={`flex flex-col  w-1/2 justify-center   ${reply.FinalResult.label === "CORRECT" ?("bg-green-600"):("bg-red-600")} rounded-md p-3 text-white`}>
+                  <p className="text-2xl text-white"><b>Final Result - Majority Voting</b></p>
+                  <hr className=" flex border-t-2 border-white my-2" />
+                  <p className="text-2xl" >
+                    {reply.FinalResult.label} NEWS HEADLINE
                   </p>
                   <p>
-                    {reply.FactCCQna.result.score}
+                    {/* {reply.FinalResult.votes} */}
                   </p>
-                  <p>
-                    {reply.FactCCQna.scrapedContent}
-                  </p> */}
+                  
                 </div>
                )
             }
