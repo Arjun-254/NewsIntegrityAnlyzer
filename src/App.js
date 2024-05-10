@@ -17,7 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
          
-          <Route path="/Translate" element={<Translate />} />
+          <Route path="/Assistant" element={<Translate />} />
           
         </Routes>
       </BrowserRouter>

@@ -21,7 +21,7 @@ export default function Statement() {
               <div className="flex items-center justify-center ">
                 { (
                   <a
-                    href="/translate"
+                    href="/Assistant"
                     className="mt-5 rounded-md border border-transparent bg-indigo-600 py-3 px-6 font-medium text-white hover:bg-blue-700"
                   >
                     Get Started <span aria-hidden="true">&rarr;</span>
