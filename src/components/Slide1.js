@@ -10,7 +10,7 @@ export default function Slide1() {
               Get Checking Now!
             </h2>
             <p className="mt-2 text-3xl font-bold tracking-tight text-gray-200 sm:text-4xl">
-              Checkout out multi-step verification process
+              Checkout out our multi-step verification process
             </p>
           </div>
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-12 lg:max-w-4xl">
@@ -33,7 +33,7 @@ export default function Slide1() {
                       />
                     </svg>
                   </div>
-                  Market Insights
+                  FactCC
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-100">
                   A few clicks to get various insights on how to navigate the

@@ -1,4 +1,5 @@
 import Landing from "./pages/Landing";
+import {Assistant} from "./pages/Assistant";
 
 import {
   Routes,

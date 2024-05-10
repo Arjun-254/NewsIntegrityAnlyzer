@@ -67,7 +67,7 @@ export default function Navbar() {
             </a>
             <a
               className="text-md font-semibold leading-6 text-gray-200 hover:font-extrabold hover:shadow-xl transition-all ease-in duration-100 p-2 rounded-lg"
-              onClick={() => navigate("/Translate")}
+              onClick={() => navigate("/Chat")}
             >
               Fact checker
             </a>
