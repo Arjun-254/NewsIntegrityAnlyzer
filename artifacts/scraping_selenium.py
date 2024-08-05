@@ -16,12 +16,16 @@ def people_also_ask(url):
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument('log-level=1')
 
-    cService = Service(executable_path='/Users/ameet/Desktop/IPD-FastAPI/chromedriver')
-    driver = webdriver.Chrome(service=cService, options=chrome_options)
+    cService = Service(executable_path='../chromedriver-win64/chromedriver.exe')
+    driver = webdriver.Chrome(service=cService,options=chrome_options)
     driver.get(url)
-    time.sleep(3)  
-    
-    questions = driver.find_elements(By.XPATH, "//div[@jsname='yEVEwb']")
+    try:
+        wait = WebDriverWait(driver, 5)
+        questions = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@jsname='yEVEwb']")))
+    except Exception as e:
+        print(f"People Also Asked questions dont exist for this category")
+        driver.quit()
+        return []
     
     all_span_texts = []  
     
