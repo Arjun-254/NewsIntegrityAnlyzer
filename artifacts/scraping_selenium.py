@@ -24,8 +24,9 @@ def people_also_ask(url):
         questions = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@jsname='yEVEwb']")))
     except Exception as e:
         print(f"People Also Asked questions dont exist for this category")
-        driver.quit()
         driver.close()
+        driver.quit()
+
         return []
     
     all_span_texts = []  
@@ -43,8 +44,8 @@ def people_also_ask(url):
                     
         except Exception as e:
             print(f"Error clicking or extracting from div/span: {e}")
-    
-    driver.quit()
     driver.close()
+    driver.quit()
+
     return all_span_texts[0:2]
 
