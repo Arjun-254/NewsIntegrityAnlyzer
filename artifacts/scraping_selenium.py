@@ -16,7 +16,7 @@ def people_also_ask(url):
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument('log-level=1')
 
-    cService = Service(executable_path='../chromedriver-win64/chromedriver.exe')
+    cService = Service(executable_path='/Users/ameet/Desktop/IPD-FastAPI/chromedriver')
     driver = webdriver.Chrome(service=cService,options=chrome_options)
     driver.get(url)
     try:
